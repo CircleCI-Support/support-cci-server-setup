@@ -73,6 +73,7 @@
 
 8. **Push updated values to your fork**
    ```bash
+   cd ../
    git commit -am "Updated values.yaml" && git push
    ```
 
