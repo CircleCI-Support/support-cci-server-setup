@@ -3,8 +3,6 @@ kind: Application
 metadata:
   name: circleci-server
   namespace: argocd
-  labels:
-    visibility: hidden
   annotations:
     argocd.argoproj.io/sync-wave: "10"
 spec:
