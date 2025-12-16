@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to port-forward ArgoCD, Prometheus, Jaeger, Nomad, and PostgreSQL
+# Script to port-forward ArgoCD, Prometheus, Jaeger, Nomad, PostgreSQL, and MongoDB
 
 set -e
 
@@ -10,7 +10,7 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}Starting port-forwards for ArgoCD, Prometheus, Jaeger, Nomad, and PostgreSQL...${NC}"
+echo -e "${BLUE}Starting port-forwards for ArgoCD, Prometheus, Jaeger, Nomad, PostgreSQL, and MongoDB...${NC}"
 
 # Find ArgoCD server pod
 ARGOCD_POD=$(kubectl get pods -n argocd -l app.kubernetes.io/name=argocd-server -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
@@ -73,6 +73,18 @@ else
     echo -e "${GREEN}  → localhost:5432${NC}"
 fi
 
+# Find MongoDB pod
+MONGODB_POD=$(kubectl get pods -n circleci-server -l app.kubernetes.io/name=mongodb -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+if [ -z "$MONGODB_POD" ]; then
+    echo -e "${YELLOW}Warning: MongoDB pod not found${NC}"
+else
+    echo -e "${GREEN}Found MongoDB pod: ${MONGODB_POD}${NC}"
+    kubectl port-forward -n circleci-server "$MONGODB_POD" 27017:27017 > /dev/null 2>&1 &
+    MONGODB_PID=$!
+    echo -e "${GREEN}MongoDB port-forward started (PID: $MONGODB_PID)${NC}"
+    echo -e "${GREEN}  → localhost:27017${NC}"
+fi
+
 echo ""
 echo -e "${BLUE}Port-forwards are running in the background.${NC}"
 echo -e "${YELLOW}Press Ctrl+C to stop all port-forwards.${NC}"
@@ -101,6 +113,10 @@ cleanup() {
     if [ ! -z "$POSTGRES_PID" ]; then
         kill $POSTGRES_PID 2>/dev/null || true
         echo -e "${GREEN}Stopped PostgreSQL port-forward${NC}"
+    fi
+    if [ ! -z "$MONGODB_PID" ]; then
+        kill $MONGODB_PID 2>/dev/null || true
+        echo -e "${GREEN}Stopped MongoDB port-forward${NC}"
     fi
     exit 0
 }
